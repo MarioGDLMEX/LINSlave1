@@ -1,0 +1,1 @@
+/*Lin machine state*/
