@@ -15,10 +15,12 @@ void initModesAndClock(void)
 
 	ME.PCTL[92].R = 0x01;           	/* PIT, RTI: select ME_RUN_PC[1] */
 	ME.PCTL[68].R = 0x01;				/* SIUL */
-	ME.PCTL[50].R = 0x01u; 				/* LinFlex_2 */	    		
+	ME.PCTL[48].R = 0x01u; 				/* LinFlex_0 */	    		
 	                              		/* Mode Transition to enter RUN0 mode: */
 	ME.MCTL.R = 0x40005AF0;         	/* Enter RUN0 Mode & Key */
 	ME.MCTL.R = 0x4000A50F;         	/* Enter RUN0 Mode & Inverted Key */  
+    //ME.IS.R = 0x00000001;           /* Clear Transition flag */ 
+	
 	while (ME.GS.B.S_MTRANS) {}     	/* Wait for mode transition to complete */    
 	                              		/* Note: could wait here using timer and/or I_TC IRQ */
 	while(ME.GS.B.S_CURRENTMODE != 4) 	/* Verify RUN0 is the current mode */

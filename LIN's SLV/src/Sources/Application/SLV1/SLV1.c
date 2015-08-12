@@ -3,7 +3,7 @@
 /*============================================================================*/
 /*                        OBJECT SPECIFICATION                                */
 /*============================================================================*
-* C Source:         %Uart.c%
+* C Source:         %SLV1.c%
 * Instance:         RPL_1
 * %version:         1 %
 * %created_by:      Mario Alberto Rivera González %
@@ -11,7 +11,7 @@
 *=============================================================================*/
 /* DESCRIPTION : C source template file                                       */
 /*============================================================================*/
-/* FUNCTION COMMENT : Implement UART Tx and Rx								  */
+/* FUNCTION COMMENT :   Implement LIN protocol as requirements matrix.		  */
 /* 							                                                  */
 /*                                                                            */
 /*============================================================================*/
@@ -19,42 +19,75 @@
 /*============================================================================*/
 /*  REVISION |   DATE      |                               |      AUTHOR      */
 /*----------------------------------------------------------------------------*/
-/*  1.0      | 10/08/2015  |                               | Mario Rivera     */
-/* Integration LinFlex2 with UART mode.                                       */
-/* It have added InitUART function, Function to receive and transmite data.   */
+/*  1.0      | 12/08/2015  |                               | Mario Rivera     */
+/*  Implement Slave1 functionality.							                  */
+/*  Fucntion that sets command slave1 to do.							      */
+/*  A periodic task that will be call each 80ms by the scheduler.			  */
 /*============================================================================*/
+
+
+/*Me quede viendo como asignar a los bitfield lo del bus*/
 
 /* Includes */
 /* -------- */
-#include "Uart.h"
-#include "GPIO.h"
-#include "MPC5606B.h"
+#include "SLV1.h"
+#include "typedefs.h"
+#include "LED.h"
 
 /* Functions macros, constants, types and datas         */
 /* ---------------------------------------------------- */
-/* Functions macros */
-#define LINFLEX2_RX_Vector  	119
-#define LINFLEX2_TX_Vector   	120
-#define TX        				40
-#define RX        				41
+#define LED_SLV			68
 
-#define	PRIORITY10	10
-
-
- T_ULONG received_caracter[4];
+#define MASTER_CMD_ALL 	    	0x0F
+#define MASTER_CMD_SLV1 		0x10  
+#define SLAVE1_RSP  			0x20 
+#define SLAVE1_ID   			0x30
 /*==================================================*/ 
 /* Definition of constants                          */
 /*==================================================*/ 
 /* BYTE constants */
 
-
+static T_UBYTE rub_option_machine;
+static T_UBYTE rub_command;
+static T_UBYTE rub_type_ID;
 /* WORD constants */
 
 
 /* LONG and STRUCTURE constants */
 
+enum
+{
+	CMD_NONE,
+	CMD_LED_ON,
+	CMD_LED_OFF,
+	CMD_LED_TOGGLING,
+	CMD_DISBLE_SLV,
+	CMD_ENABLE_SLV
+}E_TCMDTYPE;
 
+enum
+{
+	ON,
+	OFF,
+	TOGGLING
+}E_LED_STAT;
 
+enum
+{
+	ENABLED,
+	DISBALED
+}E_SLV_STAT;
+
+enum
+{
+	IDLE,
+	ID,
+	TRANSMIT,
+	RECEIVED
+}E_STATES1;
+
+static T_UBYTE rub_SLV_status;
+static T_UBYTE rub_LED_status;
 /*======================================================*/ 
 /* Definition of RAM variables                          */
 /*======================================================*/ 
@@ -72,7 +105,7 @@
 /*======================================================*/ 
 
 /* Private defines */
-void UART_init_Intrruptions( void );
+
 
 /* Private functions prototypes */
 /* ---------------------------- */
@@ -103,100 +136,156 @@ void UART_init_Intrruptions( void );
  *  Critical/explanation :    [yes / No]
  **************************************************************/
 
+/* Exported functions */
+/* ------------------ */
+/**************************************************************
+ *  Name                 :	INIT_LIN
+ *  Description          :	Initializes the slave1 variables and led
+ *  Parameters           :  void
+ *  Return               :	void
+ *  Critical/explanation :    [yes / No]
+ **************************************************************/
+ void INIT_LIN(void)
+ {
+ 	rub_option_machine = IDLE;
+ 	rub_command = IDLE;
+ 	rub_SLV_status = ENABLED;
+ 	rub_LED_status = OFF;
+ 	/*INIT LED by GPIO*/
+ 	LED_Init(LED_SLV);
+ }
+
 
 /* Exported functions */
 /* ------------------ */
 /**************************************************************
- *  Name                 :	Init_Uart
- *  Description          :  Initializes LinFlex_2 as UART mode.
- *							Initializes PIN 40 and 41 as i/o
- *  Parameters           :  [Input, Output, Input / output]
- *  Return               :
+ *  Name                 :	cmd_Reception
+ *  Description          :	Check if the Slave1 is able to recive commands
+ *							Sets the command to the slave1 variables
+ *  Parameters           :  void
+ *  Return               :	void
  *  Critical/explanation :    [yes / No]
  **************************************************************/
-void Init_Uart(void)
+void cmd_Reception()
 {
-	GPIO_Init_channel(TX,GPIO_OUTPUT, 0);/*UartMode->Tx(PIN 40 as OutPut/GPIO)*/
-	GPIO_Output(TX, 1);
-	GPIO_Init_channel(RX,GPIO_INPUT	, 1);/*UartMode->Rx(PIN 41 as Input/GPIO)*/
-	GPIO_Input(RX, 1);
-	
-	LINFLEX_2.LINCR1.B.SLEEP = 0;
-	LINFLEX_2.LINCR1.B.INIT = 1;		/* UART Init Mode */
-	
-	LINFLEX_2.UARTCR.B.UART = 1;		/* UART Mode */ 
-	LINFLEX_2.UARTCR.B.WL = 1;		/* Word Length 8 bit */
-	LINFLEX_2.UARTCR.B.PCE = 0;		/* No parity check */
-	LINFLEX_2.UARTCR.B.TDFL = 0; 		/* Transmit buffer size 1 byte */
-	LINFLEX_2.UARTCR.B.RDFL = 0; 		/* Receive buffer size 1 byte */
-	
-
-	LINFLEX_2.LINIER.B.DRIE = 1;		/* Data reception */
-	LINFLEX_2.LINIER.B.DTIE = 1;		/* Data transmission */
-
-	
-	//Make a function to calculate BaudRate
-	/* To have a baudrate of 9600 */
-	/* 1 / (9600*16 / 64000000) = 416.66666 */
-	/* fractional part LINFBRR = 0.66666*16 = 10.6666, nearest integer is 11*/
-	/* integer part LINIBRR = 416*/
-	
-	LINFLEX_2.LINFBRR.R = 11u;
-	LINFLEX_2.LINIBRR.R = 416u;
-	
-	LINFLEX_2.LINCR1.B.INIT = 0;	/* UART Normal Mode */
-	LINFLEX_2.UARTCR.B.RXEN = 1;//Active reception
-	LINFLEX_2.UARTCR.B.TXEN = 1;//Active transmition
+	if( rub_SLV_status == ENABLED )
+	{	
+		if( rub_command == CMD_NONE )
+		{
+			/*Do nothing*/
+		}
+		else if( rub_command == CMD_LED_ON )
+		{
+			rub_LED_status = ON;
+		}
+		else if( rub_command == CMD_LED_OFF )
+		{
+			rub_LED_status = OFF;
+		}
+		else if( rub_command == CMD_LED_TOGGLING )
+		{
+			rub_LED_status = TOGGLING;
+		}
+		else if( rub_command == CMD_DISBLE_SLV )
+		{
+			rub_SLV_status = DISBALED;
+		}
+		else if( rub_command == CMD_ENABLE_SLV )
+		{
+			rub_SLV_status = ENABLED;
+		}
+		else
+		{
+			/*Do nothing*/
+		}	
+	}
+	else
+	{
+		/*rub_SLV_status is DISABLE, do nothing*/
+	}
 }
 
 /* Exported functions */
 /* ------------------ */
 /**************************************************************
- *  Name                 :	UART_RXCompleted
- *  Description          :	Check if the buffer is full and assign
- *							to global variable. This will keep doing until	
- *							there is not more data send it.
+ *  Name                 :	periodicTask100ms
+ *  Description          :	Will be call each 80ms by the scheduler
+ *							and will turn on,of or toggling the led.
  *  Parameters           :  void
  *  Return               :	T_UBYTE
  *  Critical/explanation :  [yes / No]
  **************************************************************/
-T_UBYTE UART_RXCompleted(void){
-	static T_UBYTE i = 0;
-	if(LINFLEX_2.UARTSR.B.DRF==1 && LINFLEX_2.UARTSR.B.RMB==1){
-		/*Received data en pass to state machine LIN*/
-		received_caracter[i] = (T_UBYTE)LINFLEX_2.BDRM.B.DATA4;
-		LINFLEX_2.UARTSR.B.DRF=0;
-		LINFLEX_2.UARTSR.B.RMB=0;
-		if(i<4)
-		{
-			i++;	
-		}
-		if(i == 4)
-		{
-			i = 0;
-			return 1;
-		}
-		else
-		{
-			return 0;
-		}
+
+void periodicTask80ms(void)
+{
+	if( rub_LED_status == ON)
+	{
+		Led_ON(LED_SLV);
 	}
-	else
-		return 0;
+	else if( rub_LED_status == OFF )
+	{
+		Led_OFF(LED_SLV);
+	}
+	else if( rub_LED_status == TOGGLING )
+	{
+		LED_TOGGLE(LED_SLV);
+	}
 }
 
 
-/* Exported functions */
-/* ------------------ */
-/**************************************************************
- *  Name                 :	UART_TXCompleted
- *  Description          :
- *  Parameters           :  [Input, Output, Input / output]
- *  Return               :
- *  Critical/explanation :    [yes / No]
- **************************************************************/
-void UART_TXCompleted(void){
-	if(LINFLEX_2.UARTSR.B.DTF==1){
-		LINFLEX_2.UARTSR.B.DTF=1;
+
+void SLV1_state_machine( void )
+{
+	switch(rub_option_machine)
+	{
+		case IDLE:
+		break;
+		/*Checks which type of ID is recived to make a response*/
+		case ID:
+			if( rub_type_ID == SLAVE1_RSP || rub_type_ID == SLAVE1_ID )
+					rub_option_machine = TRANSMIT;
+				else if( rub_type_ID == MASTER_CMD_SLV1 || rub_type_ID == MASTER_CMD_ALL )
+				{
+					rub_option_machine = RECEIVED;
+				}
+		break;
+		case TRANSMIT:
+			/*Send status*/
+			Intc_LINFLEX_Tx(rub_type_ID);
+			rub_option_machine = IDLE;
+		break;
+		case RECEIVED:
+			rub_option_machine = IDLE;
+			/*Make command: LED_ON, LED_OFF,LED_TOGGLE, SLV_ENABLE,SLV_DISABLE*/
+			cmd_Reception();
+		break;
 	}
+
+}
+
+void set_option_machine(T_UBYTE option)
+{
+	rub_option_machine = option;
+}
+
+void set_command( T_UBYTE dato)
+{
+	rub_command = dato;
+}
+
+void ste_type_ID(T_UBYTE lub_type_ID)
+{
+	rub_type_ID = lub_type_ID;
+}
+
+
+
+T_UBYTE get_SLV_status()
+{
+	return rub_SLV_status;
+}
+
+T_UBYTE get_LED_status( )
+{	
+	return rub_LED_status;
 }

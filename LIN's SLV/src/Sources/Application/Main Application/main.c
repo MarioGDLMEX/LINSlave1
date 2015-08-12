@@ -5,7 +5,7 @@
 #include    "SchM.h"
 #include    "SchM_Cfg.h"
 #include    "MemAlloc_Cfg.h"
-#include 	"Uart.h"
+#include 	"SLV1.h"
 
 /*****************************************************************************************************
 * Definition of module wide VARIABLEs 
@@ -55,17 +55,23 @@ int main(void)
 
 {
 	initModesAndClock();
+	initPeriClkGen();        /* Initialize peripheral clock generation for LINFlex */
 	/* Disable Watchdog */
 	disableWatchdog();
 	MemAllocInit(&MemAllocConfig);
-	
-	Init_LIN_SLV1();	
+		
 	/*Initialize Interrupts */
 	INTC_InitINTCInterrupts();
 	/*Initialize Exception Handlers */
 	EXCEP_InitExceptionHandlers();
+	INTC.MCR.R=0;
+	LIN_init_Intrruptions();
+	INTC.CPR.R = 0;
+	Init_LIN_SLV1();
+	NormalModeLINFLEX_0();
     /* Enable External Interrupts*/
     enableIrq();
+    INIT_LIN();
 	/* Infinite loop */
 	/*init del scheduler*/
     SchM_Init(&SchConfig);

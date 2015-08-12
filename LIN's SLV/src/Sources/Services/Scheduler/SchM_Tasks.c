@@ -26,6 +26,7 @@
 /* Includes */
 /* -------- */
 #include "SchM_Tasks.h"
+#include "SLV1.h"
 
 /* Functions macros, constants, types and datas         */
 /* ---------------------------------------------------- */
@@ -105,6 +106,7 @@
 
 void SchM_2P5MS_Task(void)
 {
+	SLV1_state_machine();
 }
 
 
@@ -168,5 +170,5 @@ void SchM_40MS_Task(void)
  **************************************************************/
 void SchM_80MS_Task(void)
 {
-
+	periodicTask80ms();
 }

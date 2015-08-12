@@ -22,6 +22,11 @@
 /*  1.0      | 17/07/2015  |                               | Mario Rivera     */
 /* Integration programming layer. Driver to use Led's in any program.         */
 /*============================================================================*/
+/*  REVISION |   DATE      |                               |      AUTHOR      */
+/*----------------------------------------------------------------------------*/
+/*  2.0      | 12/08/2015  |                               | Mario Rivera     */
+/* Add toggling led functionality.									          */
+/*============================================================================*/
 
 /* Includes */
 /* -------- */
@@ -137,5 +142,19 @@ void LED_Init( T_UBYTE lub_chanel )
  void Led_OFF( T_UBYTE lub_Led )
  {
  	LOW(lub_Led);/*Turn off the led*/
+ }
+ 
+ /* Exported functions */
+/* ------------------ */
+/**************************************************************
+ *  Name                 :	LED_TOGGLE
+ *  Description          :	Put the pin(chanel) toggling.
+ *  Parameters           :  T_UBYTE lub_Led
+ *  Return               :	void
+ *  Critical/explanation :  NO
+ **************************************************************/
+ void LED_TOGGLE( T_UBYTE lub_Led )
+ {
+ 	TOGGLE(lub_Led);/*Toggling the led*/
  }
 

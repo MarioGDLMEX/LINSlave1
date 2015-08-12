@@ -3,39 +3,41 @@
 /*============================================================================*/
 /*                        OBJECT SPECIFICATION                                */
 /*============================================================================*
-* C Include:        %Uart.h%
+* C Include:        %SLV1.h%
 * Instance:         RPL_1
 * %version:         1 %
-* %created_by:      uid02495 %
-* %date_created:    Fri Feb 28 13:41:01 2003 %
+* %created_by:      Mario Alberto Rivera González %
+* %date_created:    Monday July  29 14:38:03 2015 %
 *=============================================================================*/
 /* DESCRIPTION : Header file template                                         */
 /*============================================================================*/
-/* FUNCTION COMMENT : contains only symbols which are exported to internal    */
-/* platform modules. This will not be delivered with the library              */
+/* FUNCTION COMMENT : Contains only symbols which are exported to internal    */
+/* platform modules. This will not be delivered with the library.             */
 /*                                                                            */
 /*============================================================================*/
 /*                               OBJECT HISTORY                               */
 /*============================================================================*/
 /*  REVISION |   DATE      |                               |      AUTHOR      */
 /*----------------------------------------------------------------------------*/
-/*  1.0      | DD/MM/YYYY  | SAR/SIF/SCN_xxx               | Mr. Template     */
-/* Integration under Continuus CM                                             */
+/*  1.0      | 17/07/2015  |                               | Mario Rivera     */
+/* Integration programming layer. Driver to use Led's in any program.         */
+/*----------------------------------------------------------------------------*/
 /*============================================================================*/
 
-#ifndef UART_H                               /* To avoid double inclusion */
-#define UART_H
+#ifndef SLV1_H                               /* To avoid double inclusion */
+#define SLV1_H
 
 /* Includes */
 /* -------- */
-
+#include "typedefs.h"
 
 /* Exported types and constants */
 /* ---------------------------- */
 
 /* Types definition */
 /* typedef */
-#include "typedefs.h"
+
+
 /*==================================================*/ 
 /* Declaration of exported constants                */
 /*==================================================*/ 
@@ -46,7 +48,7 @@
 
 
 /* LONG and STRUCTURE constants */
-extern T_ULONG received_caracter[4];
+
 
 
 /*======================================================*/ 
@@ -69,8 +71,7 @@ extern T_ULONG received_caracter[4];
 /* ---------------------------------------- */
 
 /* Functions prototypes */
-extern T_UBYTE UART_RXCompleted(void);
-
+extern void periodicTask80ms(void);
 /* Functions macros */
 
 
@@ -78,4 +79,5 @@ extern T_UBYTE UART_RXCompleted(void);
 
 
 #endif
+
 

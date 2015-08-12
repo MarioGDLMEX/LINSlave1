@@ -72,8 +72,8 @@
 
 /* Exported functions prototypes and macros */
 /* ---------------------------------------- */ 
-#define HIGH(channel)                     (SIU.GPDO[channel].B.PDO =  1)
-#define LOW(channel)                    (SIU.GPDO[channel].B.PDO =  0)
+#define HIGH(channel)                     (SIU.GPDO[channel].B.PDO =  0)
+#define LOW(channel)                    (SIU.GPDO[channel].B.PDO =  1)
 #define TOGGLE(channel)                 (SIU.GPDO[channel].B.PDO ^= 1) 
 
 
